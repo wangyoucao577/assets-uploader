@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wangyoucao577/assets-uploader/util/appversion"
+
 	"github.com/google/go-github/v32/github"
 	"golang.org/x/oauth2"
 )
@@ -18,6 +20,7 @@ func errExit(err error) {
 
 func main() {
 	flag.Parse()
+	appversion.PrintExit()
 
 	if err := flags.validate(); err != nil {
 		errExit(err)
