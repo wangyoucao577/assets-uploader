@@ -31,7 +31,7 @@ jobs:
         project_path: "./cmd/github-assets-uploader"
         binary_name: github-assets-uploader
         build_flags: -v
-        ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
+        ldflags: -X "github.com/wangyoucao577/assets-uploader/util/appversion.appVersion=${{ env.APP_VERSION }}" -X "github.com/wangyoucao577/assets-uploader/util/appversion.buildTime=${{ env.BUILD_TIME }}" -X github.com/wangyoucao577/assets-uploader/util/appversion.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
 
         
 
