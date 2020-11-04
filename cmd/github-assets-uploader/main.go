@@ -19,6 +19,16 @@ func errExit(err error) {
 	os.Exit(1)
 }
 
+func parseRepo(repo string) (repoOwner string, repoName string, err error) {
+	s := strings.Split(repo, "/")
+	if len(s) != 2 {
+		err = fmt.Errorf("repo has to be 'owner_name/repo_name' format, but got %s", repo)
+		return
+	}
+	repoOwner, repoName = s[0], s[1]
+	return
+}
+
 func main() {
 	flag.Parse()
 	appversion.PrintExit()
@@ -26,11 +36,10 @@ func main() {
 	if err := flags.validate(); err != nil {
 		errExit(err)
 	}
-	repoInfo := strings.Split(flags.repo, "/")
-	if len(repoInfo) != 2 {
-		errExit(fmt.Errorf("repo has to be 'owner_name/repo_name' format, but got %s", flags.repo))
+	repoOwner, repoName, err := parseRepo(flags.repo)
+	if err != nil {
+		errExit(err)
 	}
-	repoOwner, repoName := repoInfo[0], repoInfo[1]
 
 	// read-only client
 	client := github.NewClient(nil)
