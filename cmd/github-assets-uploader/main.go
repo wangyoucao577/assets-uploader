@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
 
@@ -25,9 +26,15 @@ func main() {
 	if err := flags.validate(); err != nil {
 		errExit(err)
 	}
+	repoInfo := strings.Split(flags.repo, "/")
+	if len(repoInfo) != 2 {
+		errExit(fmt.Errorf("repo has to be 'owner_name/repo_name' format, but got %s", flags.repo))
+	}
+	repoOwner := repoInfo[0]
+	repoName := repoInfo[1]
 
 	client := github.NewClient(nil)
-	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), flags.owner, flags.repo, flags.tag)
+	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, flags.tag)
 	if err != nil {
 		errExit(err)
 	}
@@ -43,7 +50,7 @@ func main() {
 	tc := oauth2.NewClient(uploadContext, ts)
 	uploadClient := github.NewClient(tc)
 
-	releaseAsset, _, err := uploadClient.Repositories.UploadReleaseAsset(context.Background(), flags.owner, flags.repo, release.GetID(), &github.UploadOptions{
+	releaseAsset, _, err := uploadClient.Repositories.UploadReleaseAsset(context.Background(), repoOwner, repoName, release.GetID(), &github.UploadOptions{
 		Name:      filepath.Base(f.Name()),
 		Label:     "",
 		MediaType: flags.mediaType,
