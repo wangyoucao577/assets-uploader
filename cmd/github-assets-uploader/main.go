@@ -30,34 +30,57 @@ func main() {
 	if len(repoInfo) != 2 {
 		errExit(fmt.Errorf("repo has to be 'owner_name/repo_name' format, but got %s", flags.repo))
 	}
-	repoOwner := repoInfo[0]
-	repoName := repoInfo[1]
+	repoOwner, repoName := repoInfo[0], repoInfo[1]
 
+	// read-only client
 	client := github.NewClient(nil)
+
+	// read-write client
+	rwContext := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: flags.token})
+	tc := oauth2.NewClient(rwContext, ts)
+	rwClient := github.NewClient(tc)
+
+	// get release by tag
 	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, flags.tag)
 	if err != nil {
 		errExit(err)
 	}
 
+	assetName := filepath.Base(flags.file)
+	if flags.overwrite { // remove old one if it's exist already
+		assets, _, err := client.Repositories.ListReleaseAssets(context.Background(), repoOwner, repoName, release.GetID(), nil)
+		if err != nil {
+			errExit(err)
+		}
+		for _, asset := range assets {
+			if asset.GetName() == assetName {
+
+				// found exist one, delete it
+				if _, err := rwClient.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
+					errExit(err)
+				}
+				fmt.Printf("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
+				break
+			}
+		}
+	}
+
+	// open file for uploading
 	f, err := os.Open(flags.file) // For read access.
 	if err != nil {
 		errExit(err)
 	}
 	defer f.Close()
 
-	uploadContext := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: flags.token})
-	tc := oauth2.NewClient(uploadContext, ts)
-	uploadClient := github.NewClient(tc)
-
-	releaseAsset, _, err := uploadClient.Repositories.UploadReleaseAsset(context.Background(), repoOwner, repoName, release.GetID(), &github.UploadOptions{
-		Name:      filepath.Base(f.Name()),
+	// upload
+	releaseAsset, _, err := rwClient.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
+		Name:      assetName,
 		Label:     "",
 		MediaType: flags.mediaType,
 	}, f)
 	if err != nil {
 		errExit(err)
 	}
-
-	fmt.Printf("Upload successed: %s\n", releaseAsset.GetBrowserDownloadURL())
+	fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
 }
