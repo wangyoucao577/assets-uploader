@@ -25,13 +25,3 @@ jobs:
     - name: Test
       run: go test -v ./...
 
-  go-linter:
-    name: Go Linter
-    runs-on: ubuntu-latest
-    steps:
-    - name: go1.15 linter
-      uses: shoukoo/golang-pipeline/go1.15/linter@master
-      with:
-        GOLINT: on
-        GOLINTPATH: .
-        MISSPELL: off
