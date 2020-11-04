@@ -6,7 +6,7 @@ on:
 
 jobs:
   releases-matrix:
-    name: Release github-assets-uploader
+    name: github-assets-uploader
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -27,7 +27,9 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
+        goversion: "https://golang.org/dl/go1.15.3.linux-amd64.tar.gz"
         project_path: "./cmd/github-assets-uploader"
+        binary_name: github-assets-uploader
         build_flags: -v
         ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
 
