@@ -1,0 +1,35 @@
+name: Release Go Binaries
+
+on: 
+  release:
+    types: [created]
+
+jobs:
+  releases-matrix:
+    name: Release github-assets-uploader
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, windows, darwin]
+        goarch: [amd64]
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set APP_VERSION env
+      run: echo ::set-env name=APP_VERSION::$(basename ${GITHUB_REF})
+    - name: Set BUILD_TIME env
+      run: echo ::set-env name=BUILD_TIME::$(date)
+    - name: Environment Printer
+      uses: managedkaos/print-env@v1.0
+
+    - uses: wangyoucao577/go-release-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: "./cmd/github-assets-uploader"
+        build_flags: -v
+        ldflags: -X "main.appVersion=${{ env.APP_VERSION }}" -X "main.buildTime=${{ env.BUILD_TIME }}" -X main.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
+
+        
+
