@@ -41,11 +41,11 @@ func Print() {
 	Fprint(os.Stdout)
 }
 
-// PrintExit prints version to stdout and os.Exit(2) if have `-version` flag.
+// PrintExit prints version to stdout and os.Exit(0) if have `-version` flag.
 // Call it after `flag.Parse()`.
 func PrintExit() {
 	if VersionFlag() {
 		Print()
-		os.Exit(2)
+		os.Exit(0)
 	}
 }
