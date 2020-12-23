@@ -41,14 +41,11 @@ func main() {
 		errExit(err)
 	}
 
-	// read-only client
-	client := github.NewClient(nil)
-
 	// read-write client
 	rwContext := context.Background()
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: flags.token})
 	tc := oauth2.NewClient(rwContext, ts)
-	rwClient := github.NewClient(tc)
+	client := github.NewClient(tc)
 
 	// get release by tag
 	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, flags.tag)
@@ -66,7 +63,7 @@ func main() {
 			if asset.GetName() == assetName {
 
 				// found exist one, delete it
-				if _, err := rwClient.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
+				if _, err := client.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
 					errExit(err)
 				}
 				fmt.Printf("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
@@ -83,7 +80,7 @@ func main() {
 	defer f.Close()
 
 	// upload
-	releaseAsset, _, err := rwClient.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
+	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
 		Name:      assetName,
 		Label:     "",
 		MediaType: flags.mediaType,
