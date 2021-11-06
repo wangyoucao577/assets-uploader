@@ -10,7 +10,7 @@ import (
 
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 )
 
