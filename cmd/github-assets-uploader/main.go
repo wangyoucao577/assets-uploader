@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
 
@@ -72,21 +73,33 @@ func main() {
 		}
 	}
 
-	// open file for uploading
-	f, err := os.Open(flags.file) // For read access.
-	if err != nil {
-		errExit(err)
-	}
-	defer f.Close()
+	retry := flags.retry
+	for {
+		retry--
 
-	// upload
-	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
-		Name:      assetName,
-		Label:     "",
-		MediaType: flags.mediaType,
-	}, f)
-	if err != nil {
-		errExit(err)
+		// open file for uploading
+		f, err := os.Open(flags.file) // For read access.
+		if err != nil {
+			errExit(err)
+		}
+		defer f.Close()
+
+		// upload
+		releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
+			Name:      assetName,
+			Label:     "",
+			MediaType: flags.mediaType,
+		}, f)
+		if err != nil {
+			if retry == 0 {
+				errExit(err)
+			} else {
+				fmt.Printf("Upload asset error: %v, will retry later\n", err)
+				time.Sleep(3 * time.Second) // retry after 3 seconds
+				continue
+			}
+		}
+		fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
+		break // break when succeed
 	}
-	fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
 }

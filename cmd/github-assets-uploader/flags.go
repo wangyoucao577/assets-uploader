@@ -12,6 +12,7 @@ type uploaderFlags struct {
 	tag       string
 	token     string
 	overwrite bool
+	retry     uint
 }
 
 func (u *uploaderFlags) validate() error {
@@ -25,7 +26,7 @@ func (u *uploaderFlags) validate() error {
 		return fmt.Errorf("file is mandatory but not set")
 	}
 	if len(u.token) == 0 {
-		return fmt.Errorf("Github token is mandatory but not set")
+		return fmt.Errorf("github token is mandatory but not set")
 	}
 
 	return nil
@@ -40,4 +41,5 @@ func init() {
 	flag.StringVar(&flags.tag, "tag", "", "Git tag to identify a Github Release in repo.")
 	flag.StringVar(&flags.token, "token", "", "Github token to make changes.")
 	flag.BoolVar(&flags.overwrite, "overwrite", false, "Overwrite release asset if it's already exist.")
+	flag.UintVar(&flags.retry, "retry", 1, "How many times to retry if error occur.")
 }
