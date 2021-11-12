@@ -11,12 +11,13 @@ import (
 
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
 
+	"github.com/golang/glog"
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
 )
 
 func errExit(err error) {
-	fmt.Println(err)
+	glog.Errorln(err)
 	os.Exit(1)
 }
 
@@ -33,6 +34,7 @@ func parseRepo(repo string) (repoOwner string, repoName string, err error) {
 func main() {
 	flag.Parse()
 	appversion.PrintExit()
+	defer glog.Flush()
 
 	if err := flags.validate(); err != nil {
 		errExit(err)
@@ -51,7 +53,7 @@ func main() {
 			if retry == 0 {
 				errExit(err)
 			} else {
-				fmt.Printf("Upload asset error, will retry soon: %v\n", err)
+				glog.Warningf("Upload asset error, will retry soon: %v\n", err)
 				time.Sleep(3 * time.Second) // retry after 3 seconds
 				continue
 			}
@@ -88,7 +90,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 				if _, err := client.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
 					return err
 				}
-				fmt.Printf("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
+				glog.Infof("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
 				break
 			}
 		}
@@ -110,6 +112,6 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
+	glog.Infof("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
 	return nil
 }
