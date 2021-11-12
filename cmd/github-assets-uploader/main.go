@@ -42,30 +42,51 @@ func main() {
 		errExit(err)
 	}
 
+	retry := flags.retry
+	for {
+		retry--
+
+		err := uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.overwrite)
+		if err != nil {
+			if retry == 0 {
+				errExit(err)
+			} else {
+				fmt.Printf("Upload asset error, will retry soon: %v\n", err)
+				time.Sleep(3 * time.Second) // retry after 3 seconds
+				continue
+			}
+		}
+
+		break // break when succeed
+	}
+}
+
+func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, overwrite bool) error {
+
 	// read-write client
 	rwContext := context.Background()
-	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: flags.token})
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(rwContext, ts)
 	client := github.NewClient(tc)
 
 	// get release by tag
-	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, flags.tag)
+	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, tag)
 	if err != nil {
-		errExit(err)
+		return err
 	}
 
-	assetName := filepath.Base(flags.file)
-	if flags.overwrite { // remove old one if it's exist already
+	assetName := filepath.Base(assetPath)
+	if overwrite { // remove old one if it's exist already
 		assets, _, err := client.Repositories.ListReleaseAssets(context.Background(), repoOwner, repoName, release.GetID(), nil)
 		if err != nil {
-			errExit(err)
+			return err
 		}
 		for _, asset := range assets {
 			if asset.GetName() == assetName {
 
 				// found exist one, delete it
 				if _, err := client.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
-					errExit(err)
+					return err
 				}
 				fmt.Printf("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
 				break
@@ -73,33 +94,22 @@ func main() {
 		}
 	}
 
-	retry := flags.retry
-	for {
-		retry--
-
-		// open file for uploading
-		f, err := os.Open(flags.file) // For read access.
-		if err != nil {
-			errExit(err)
-		}
-		defer f.Close()
-
-		// upload
-		releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
-			Name:      assetName,
-			Label:     "",
-			MediaType: flags.mediaType,
-		}, f)
-		if err != nil {
-			if retry == 0 {
-				errExit(err)
-			} else {
-				fmt.Printf("Upload asset error: %v, will retry later\n", err)
-				time.Sleep(3 * time.Second) // retry after 3 seconds
-				continue
-			}
-		}
-		fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
-		break // break when succeed
+	// open file for uploading
+	f, err := os.Open(assetPath) // For read access.
+	if err != nil {
+		return err
 	}
+	defer f.Close()
+
+	// upload
+	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
+		Name:      assetName,
+		Label:     "",
+		MediaType: mediaType,
+	}, f)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
+	return nil
 }
