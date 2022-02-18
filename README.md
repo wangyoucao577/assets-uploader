@@ -4,7 +4,8 @@ Command line tool to robustly upload Github release assets.
 
 ## Features
 - Upload file to Github Release Assets that identified by `tag`.    
-- Allow `overwrite` if file exists.    
+- Allow `overwrite` if file exists.
+- With the optional `-draft` flag an upload to an existing draft-release is supported (first pick)
 
 ## Build 
 ```bash
@@ -27,6 +28,8 @@ Usage of ./github-assets-uploader:
         Github repo, e.g., 'wangyoucao577/assets-uploader'.
   -tag string
         Git tag to identify a Github Release in repo.
+  -draft bool
+        Upload asset to an existing draft release.
   -token string
         Github token to make changes.
   -version

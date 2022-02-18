@@ -65,22 +65,39 @@ func main() {
 }
 
 func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, overwrite bool) error {
-
 	// read-write client
-	rwContext := context.Background()
+	rwContext, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(rwContext, ts)
 	client := github.NewClient(tc)
 
+	var draftRelease, release *github.RepositoryRelease
+	var err error
+	var releaseID int64
+
+	if flags.draft {
+		draftRelease, err = getDraftRelease(rwContext, client, repoOwner, repoName)
+		if err != nil {
+			return err
+		}
+		releaseID = draftRelease.GetID()
+	}
+
 	// get release by tag
-	release, _, err := client.Repositories.GetReleaseByTag(context.Background(), repoOwner, repoName, tag)
-	if err != nil {
-		return err
+	if draftRelease == nil {
+		release, _, err = client.Repositories.GetReleaseByTag(rwContext, repoOwner, repoName, tag)
+		if err != nil {
+			return err
+		}
+		releaseID = release.GetID()
 	}
 
 	assetName := filepath.Base(assetPath)
 	if overwrite { // remove old one if it's exist already
-		assets, _, err := client.Repositories.ListReleaseAssets(context.Background(), repoOwner, repoName, release.GetID(), nil)
+		var assets []*github.ReleaseAsset
+		assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, releaseID, nil)
 		if err != nil {
 			return err
 		}
@@ -88,7 +105,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 			if asset.GetName() == assetName {
 
 				// found exist one, delete it
-				if _, err := client.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
+				if _, err = client.Repositories.DeleteReleaseAsset(rwContext, repoOwner, repoName, asset.GetID()); err != nil {
 					return err
 				}
 				glog.Infof("Deleted old asset, id %d, name '%s', url '%s'\n", asset.GetID(), asset.GetName(), asset.GetBrowserDownloadURL())
@@ -105,7 +122,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	defer f.Close()
 
 	// upload
-	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
+	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, releaseID, &github.UploadOptions{
 		Name:      assetName,
 		Label:     "",
 		MediaType: mediaType,
@@ -115,4 +132,20 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	}
 	glog.Infof("Upload asset succeed, id %d, name '%s', url: '%s'\n", releaseAsset.GetID(), releaseAsset.GetName(), releaseAsset.GetBrowserDownloadURL())
 	return nil
+}
+
+func getDraftRelease(ctx context.Context, client *github.Client, repoOwner, repoName string) (*github.RepositoryRelease, error) {
+	releases, _, err := client.Repositories.ListReleases(ctx, repoOwner, repoName, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var draftRelease *github.RepositoryRelease
+	for _, release := range releases { // assume they are some kind of sorted, first pick (newest)
+		if release.GetDraft() {
+			draftRelease = release
+			break
+		}
+	}
+	return draftRelease, nil
 }
