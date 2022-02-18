@@ -48,7 +48,7 @@ func main() {
 	for {
 		retry--
 
-		err := uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.overwrite)
+		err = uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.overwrite)
 		if err != nil {
 			if retry == 0 {
 				errExit(err)
