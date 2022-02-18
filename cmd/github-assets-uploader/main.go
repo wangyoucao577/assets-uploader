@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wangyoucao577/assets-uploader/util/appversion"
-
 	"github.com/golang/glog"
 	"github.com/google/go-github/v39/github"
 	"golang.org/x/oauth2"
+
+	"github.com/wangyoucao577/assets-uploader/util/appversion"
 )
 
 func errExit(err error) {
@@ -45,6 +45,7 @@ func main() {
 	}
 
 	retry := flags.retry
+	retryDuration := time.Second * 3
 	for {
 		retry--
 
@@ -53,8 +54,8 @@ func main() {
 			if retry == 0 {
 				errExit(err)
 			} else {
-				glog.Warningf("Upload asset error, will retry soon: %v\n", err)
-				time.Sleep(3 * time.Second) // retry after 3 seconds
+				glog.Warningf("Upload asset error, will retry in %s: %v\n", retryDuration.String(), err)
+				time.Sleep(retryDuration) // retry after 3 seconds
 				continue
 			}
 		}
