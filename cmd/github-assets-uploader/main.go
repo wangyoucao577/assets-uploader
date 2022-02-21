@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -73,31 +74,24 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	tc := oauth2.NewClient(rwContext, ts)
 	client := github.NewClient(tc)
 
-	var draftRelease, release *github.RepositoryRelease
+	var release *github.RepositoryRelease
 	var err error
-	var releaseID int64
 
-	if flags.draft {
-		draftRelease, err = getDraftRelease(rwContext, client, repoOwner, repoName)
-		if err != nil {
-			return err
-		}
-		releaseID = draftRelease.GetID()
+	// get release by tag or name
+	if tag != "" {
+		release, _, err = client.Repositories.GetReleaseByTag(rwContext, repoOwner, repoName, tag)
+	} else if flags.releaseName != "" {
+		release, err = getDraftRelease(rwContext, client, repoOwner, repoName)
 	}
 
-	// get release by tag
-	if draftRelease == nil {
-		release, _, err = client.Repositories.GetReleaseByTag(rwContext, repoOwner, repoName, tag)
-		if err != nil {
-			return err
-		}
-		releaseID = release.GetID()
+	if err != nil {
+		return err
 	}
 
 	assetName := filepath.Base(assetPath)
 	if overwrite { // remove old one if it's exist already
 		var assets []*github.ReleaseAsset
-		assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, releaseID, nil)
+		assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, release.GetID(), nil)
 		if err != nil {
 			return err
 		}
@@ -122,7 +116,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	defer f.Close()
 
 	// upload
-	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, releaseID, &github.UploadOptions{
+	releaseAsset, _, err := client.Repositories.UploadReleaseAsset(rwContext, repoOwner, repoName, release.GetID(), &github.UploadOptions{
 		Name:      assetName,
 		Label:     "",
 		MediaType: mediaType,
@@ -140,12 +134,14 @@ func getDraftRelease(ctx context.Context, client *github.Client, repoOwner, repo
 		return nil, err
 	}
 
-	var draftRelease *github.RepositoryRelease
+	sort.SliceStable(releases, func(i, j int) bool {
+		return releases[i].CreatedAt.After(releases[j].CreatedAt.Time)
+	})
+
 	for _, release := range releases { // assume they are some kind of sorted, first pick (newest)
-		if release.GetDraft() {
-			draftRelease = release
-			break
+		if release.GetName() == flags.releaseName {
+			return release, nil
 		}
 	}
-	return draftRelease, nil
+	return nil, fmt.Errorf("no release found with name: %q", flags.releaseName)
 }
