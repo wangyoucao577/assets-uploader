@@ -81,7 +81,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	if tag != "" {
 		release, _, err = client.Repositories.GetReleaseByTag(rwContext, repoOwner, repoName, tag)
 	} else if flags.releaseName != "" {
-		release, err = getDraftRelease(rwContext, client, repoOwner, repoName)
+		release, err = getReleaseByName(rwContext, client, repoOwner, repoName, flags.releaseName)
 	}
 
 	if err != nil {
@@ -128,7 +128,8 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, o
 	return nil
 }
 
-func getDraftRelease(ctx context.Context, client *github.Client, repoOwner, repoName string) (*github.RepositoryRelease, error) {
+// getReleaseByName lists all releases, sort them by created-at and picks the first/newest one with the given name.
+func getReleaseByName(ctx context.Context, client *github.Client, repoOwner, repoName, releaseName string) (*github.RepositoryRelease, error) {
 	releases, _, err := client.Repositories.ListReleases(ctx, repoOwner, repoName, nil)
 	if err != nil {
 		return nil, err
@@ -139,9 +140,9 @@ func getDraftRelease(ctx context.Context, client *github.Client, repoOwner, repo
 	})
 
 	for _, release := range releases { // assume they are some kind of sorted, first pick (newest)
-		if release.GetName() == flags.releaseName {
+		if release.GetName() == releaseName {
 			return release, nil
 		}
 	}
-	return nil, fmt.Errorf("no release found with name: %q", flags.releaseName)
+	return nil, fmt.Errorf("no release found with name: %q", releaseName)
 }
