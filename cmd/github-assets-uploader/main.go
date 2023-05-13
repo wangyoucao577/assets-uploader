@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sort"
@@ -46,7 +47,8 @@ func main() {
 	}
 
 	retry := flags.retry
-	retryDuration := time.Second * 3
+	minDuration := 3
+	maxDuration := 15
 	for {
 		retry--
 
@@ -55,8 +57,11 @@ func main() {
 			if retry == 0 {
 				errExit(err)
 			} else {
+				randomDuration := time.Duration(minDuration + rand.Intn(maxDuration-minDuration))
+				retryDuration := time.Second * randomDuration
+
 				glog.Warningf("Upload asset error, will retry in %s: %v\n", retryDuration.String(), err)
-				time.Sleep(retryDuration) // retry after 3 seconds
+				time.Sleep(retryDuration) // retry after 3-15 seconds
 				continue
 			}
 		}
