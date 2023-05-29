@@ -80,9 +80,9 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, b
 
 	var client *github.Client
 	if baseUrl != "" {
-		client = github.NewClient(tc)
-	} else {
 		client, _ = github.NewEnterpriseClient(baseUrl, baseUrl, tc)
+	} else {
+		client = github.NewClient(tc)
 	}
 	
 
