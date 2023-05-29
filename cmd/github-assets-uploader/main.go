@@ -52,7 +52,7 @@ func main() {
 	for {
 		retry--
 
-		err = uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.overwrite)
+		err = uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.baseUrl, flags.overwrite)
 		if err != nil {
 			if retry == 0 {
 				errExit(err)
@@ -70,14 +70,21 @@ func main() {
 	}
 }
 
-func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, overwrite bool) error {
+func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, baseUrl string, overwrite bool) error {
 	// read-write client
 	rwContext, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(rwContext, ts)
-	client := github.NewClient(tc)
+
+	var client *github.Client
+	if baseUrl != "" {
+		client = github.NewClient(tc)
+	} else {
+		client, _ = github.NewEnterpriseClient(baseUrl, baseUrl, tc)
+	}
+	
 
 	var release *github.RepositoryRelease
 	var err error

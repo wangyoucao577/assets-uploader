@@ -14,6 +14,7 @@ type uploaderFlags struct {
 	retry       uint
 	tag         string
 	token       string
+	baseUrl		string
 }
 
 func (u *uploaderFlags) validate() error {
@@ -44,4 +45,5 @@ func init() {
 	flag.StringVar(&flags.tag, "tag", "", "Git tag to identify a Github Release in repo.")
 	flag.UintVar(&flags.retry, "retry", 1, "How many times to retry if error occur.")
 	flag.StringVar(&flags.token, "token", "", "Github token to make changes.")
+	flag.StringVar(&flags.baseUrl, "baseurl", "", "Github base URL. E.g. http://github.example.com")
 }
