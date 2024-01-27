@@ -48,7 +48,7 @@ func cleanAssets(repoOwner, repoName, tag, token string, dryrun bool) error {
 	}
 
 	var assets []*github.ReleaseAsset
-	assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, release.GetID(), nil)
+	assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, release.GetID(), &github.ListOptions{PerPage: 100})
 	if err != nil {
 		return err
 	}
