@@ -85,7 +85,7 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, b
 	assetName := filepath.Base(assetPath)
 	if overwrite { // remove old one if it's exist already
 		var assets []*github.ReleaseAsset
-		assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, release.GetID(), nil)
+		assets, _, err = client.Repositories.ListReleaseAssets(rwContext, repoOwner, repoName, release.GetID(), &github.ListOptions{PerPage: 100})
 		if err != nil {
 			return err
 		}
