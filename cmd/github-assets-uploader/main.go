@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/golang/glog"
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v58/github"
 	"golang.org/x/oauth2"
 
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
