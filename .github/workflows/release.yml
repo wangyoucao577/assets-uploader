@@ -1,5 +1,9 @@
 name: Release Go Binaries
 
+permissions:
+  contents: write
+  packages: write
+
 on: 
   release:
     types: [created]
