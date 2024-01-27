@@ -10,7 +10,7 @@ on:
 
 jobs:
   releases-matrix:
-    name: github-assets-uploader
+    name: assets-uploader
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -33,6 +33,16 @@ jobs:
         goarch: ${{ matrix.goarch }}
         project_path: "./cmd/github-assets-uploader"
         binary_name: github-assets-uploader
+        build_flags: -v
+        ldflags: -X "github.com/wangyoucao577/assets-uploader/util/appversion.appVersion=${{ env.APP_VERSION }}" -X "github.com/wangyoucao577/assets-uploader/util/appversion.buildTime=${{ env.BUILD_TIME }}" -X github.com/wangyoucao577/assets-uploader/util/appversion.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
+
+    - uses: wangyoucao577/go-release-action@v1
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        project_path: "./cmd/github-assets-cleaner"
+        binary_name: github-assets-cleaner
         build_flags: -v
         ldflags: -X "github.com/wangyoucao577/assets-uploader/util/appversion.appVersion=${{ env.APP_VERSION }}" -X "github.com/wangyoucao577/assets-uploader/util/appversion.buildTime=${{ env.BUILD_TIME }}" -X github.com/wangyoucao577/assets-uploader/util/appversion.gitCommit=${{ github.sha }} -X main.gitRef=${{ github.ref }}
 
