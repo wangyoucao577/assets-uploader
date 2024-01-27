@@ -8,30 +8,15 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/golang/glog"
 	"github.com/google/go-github/v58/github"
 	"golang.org/x/oauth2"
 
+	"github.com/wangyoucao577/assets-uploader/util"
 	"github.com/wangyoucao577/assets-uploader/util/appversion"
 )
-
-func errExit(err error) {
-	glog.Errorln(err)
-	os.Exit(1)
-}
-
-func parseRepo(repo string) (repoOwner string, repoName string, err error) {
-	s := strings.Split(repo, "/")
-	if len(s) != 2 {
-		err = fmt.Errorf("repo has to be 'owner_name/repo_name' format, but got %s", repo)
-		return
-	}
-	repoOwner, repoName = s[0], s[1]
-	return
-}
 
 func main() {
 	flag.Parse()
@@ -39,11 +24,11 @@ func main() {
 	defer glog.Flush()
 
 	if err := flags.validate(); err != nil {
-		errExit(err)
+		util.ErrExit(err)
 	}
-	repoOwner, repoName, err := parseRepo(flags.repo)
+	repoOwner, repoName, err := util.ParseRepo(flags.repo)
 	if err != nil {
-		errExit(err)
+		util.ErrExit(err)
 	}
 
 	retry := flags.retry
@@ -55,7 +40,7 @@ func main() {
 		err = uploadAsset(repoOwner, repoName, flags.tag, flags.file, flags.mediaType, flags.token, flags.baseUrl, flags.overwrite)
 		if err != nil {
 			if retry == 0 {
-				errExit(err)
+				util.ErrExit(err)
 			} else {
 				randomDuration := time.Duration(minDuration + rand.Intn(maxDuration-minDuration))
 				retryDuration := time.Second * randomDuration
@@ -78,13 +63,10 @@ func uploadAsset(repoOwner, repoName, tag, assetPath, mediaType, token string, b
 	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	tc := oauth2.NewClient(rwContext, ts)
 
-	var client *github.Client
+	client := github.NewClient(tc)
 	if baseUrl != "" {
-		client, _ = github.NewEnterpriseClient(baseUrl, baseUrl, tc)
-	} else {
-		client = github.NewClient(tc)
+		client, _ = client.WithEnterpriseURLs(baseUrl, baseUrl)
 	}
-	
 
 	var release *github.RepositoryRelease
 	var err error
